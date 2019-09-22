@@ -152,6 +152,7 @@ def loadConfig():
 #修正设备IP地址
 def fixDevices():
     try:
+        logger.info("自动修复设备IP配置")
         dlist = dlnap.discover(timeout=20)
     except:
         logger.error("自动修复设备配置失败")
@@ -164,6 +165,8 @@ def fixDevices():
                 changed = True
             if dinfo.name != sd["name"] and dinfo.ip == sd["host"]:
                 sd["name"]  = dinfo.name
+                if sd["state"] == "On":
+                    _thread.start_new_thread(playMediaWorker,(sd["name"] ,))
                 changed = True
     if changed :
         savePlayersConfig()
@@ -430,6 +433,8 @@ def playVedio(devname,filename):
         tv = dlnap.DlnapDevice( devinfo._DlnapDevice__raw.encode('utf-8'),devinfo.ip)
         tv.stop()
         tv.set_current_media(filename)
+        tv.set_current_media(filename)
+        tv.play()
         tv.play()
     except:
         logger.error("视频播放出现错误"+filename)
@@ -488,35 +493,52 @@ def getNextMediaFile(devHost):
     devPlaylistInfo["lastIndex"] = nextIndex
     return devPlaylist[nextIndex]
 
+#检查是否设备还在注册列表
+def inRegedDev(devname):
+    global ShopDevices
+    devTest = False
+    for d in ShopDevices:
+        if d["name"] == devname :
+            devTest = True
+            break
+    return  devTest
+
 #设备播放线程
 def playMediaWorker(deviceHost):
-    #检查是否到达禁播时间
-    global NoADUntil
-    if deviceHost in NoADUntil:
-        noadtime = NoADUntil[deviceHost]
-        if  datetime.datetime.now().timetuple() < noadtime:
-            time.sleep(3)
-            _thread.start_new_thread(playMediaWorker,(deviceHost,))
+    try:
+        #检查是否设备还在注册列表
+        if not inRegedDev(deviceHost):
+            logger.warning("设备已不存在。设备:"+deviceHost)
             return
 
-    #处理重启情况
-    global AppStopAction
-    if checkAppStopAction():
-        return
+        #检查是否到达禁播时间
+        global NoADUntil
+        if deviceHost in NoADUntil:
+            noadtime = NoADUntil[deviceHost]
+            if  datetime.datetime.now().timetuple() < noadtime:
+                time.sleep(3)
+                logger.warning("设备当前处于禁播状态。设备："+deviceHost)
+                _thread.start_new_thread(playMediaWorker,(deviceHost,))
+                return
 
-    try:
+        #处理重启情况
+        global AppStopAction
+        if checkAppStopAction():
+            logger.warning("设备当前处于停上中或重启状态。设备："+deviceHost)
+            return
+
+    
         #获取设备信息
         deviceInfo = None
         for dev in ShopDevices:
             if dev["name"] == deviceHost:
                 deviceInfo = dev
-        if deviceInfo == None or deviceInfo["name"] != deviceHost:
-            return
         if deviceInfo["state"] != "On":
             logger.warning( deviceInfo["name"]+"设备已停用。")
             return
+
+        #获取设备播放列表
         logger.info("获取设备" + deviceInfo["name"] + "的播放列表")
-        
         mediafile = getNextMediaFile(deviceHost)
         if mediafile == None :
             logger.info("设备" + deviceInfo["name"] + "无可播放的媒体资源")
@@ -525,10 +547,12 @@ def playMediaWorker(deviceHost):
             return
         threadDuration = mediafile["duration"] / 1000 
         
+        #播放节目
         logger.info("播放媒体文件" + mediafile["filename"] + "至" + deviceInfo["name"] + ",执行时间：" + str(threadDuration) + "秒")
         if deviceInfo["protocol"] == "DLNA":
-            threadDuration -= 1
+            #threadDuration -= 2
             localfilename ="http://" +LocalHttpHost +":" +LocalHttpPort + "/"+ mediafile["mediaid"] + mediafile["extension"]
+            logger.info("视频文件地址："+localfilename)
             _thread.start_new_thread(playVedio,(deviceInfo["name"] , localfilename))
         elif deviceInfo["protocol"] == "AudioCard":
             threadDuration += 2
@@ -542,6 +566,7 @@ def playMediaWorker(deviceHost):
         targetRow = (session.query(playlistdb.PlayList)
                     .filter(playlistdb.PlayList.playlistid == mediafile["id"])
                     .first())
+        
         if targetRow != None:
             targetRow.lastplaytime = datetime.datetime.now()
             targetRow.playcount = targetRow.playcount+1
@@ -551,6 +576,7 @@ def playMediaWorker(deviceHost):
             threadDuration = 1
         time.sleep(threadDuration)
         _thread.start_new_thread(playMediaWorker,(deviceHost,))
+
     except Exception as err:
         logger.error("播放节目出错")
         time.sleep(10)
@@ -616,6 +642,7 @@ def api_device_findDLNADevices():
         devInfos.append(ditem)
     return json.dumps(devInfos)
 
+#播放节目到指定设备
 def playToDevice(devicename,url,endtime):
     device = dlnap.DlnapDevice(None,None)
     device.loadByName(devicename)
@@ -627,6 +654,7 @@ def playToDevice(devicename,url,endtime):
     tv.set_current_media(url)
     tv.play()
 
+#更新命令执行状态
 def updateRemoteCommandStatus(cmdid,status):
     global DiscoverURI
     reqUrl = DiscoverURI+'/iot/command/'+_SN_
@@ -641,6 +669,7 @@ def updateRemoteCommandStatus(cmdid,status):
         logger.error('完成命令状态更新失败。')
     pass
 
+#远程命令执行器
 def remoteCommandsRunner():
     global DiscoverURI
     reqUrl = DiscoverURI+'/iot/command/'+_SN_
@@ -665,8 +694,8 @@ def remoteCommandsRunner():
             endtime =time.strptime(cmddata["endtime"],'%Y-%m-%dT%H:%M:%S')
             playToDevice(cmddata["devicename"],cmddata["url"],endtime)
             updateRemoteCommandStatus(cmdid,'1')
-    except:
-        logger.error('Remote command runner error.')
+    except Exception as err:
+        logger.error('Remote command runner error. %s', err)
     pass
 
 #查出所有已注册的设备
@@ -690,8 +719,13 @@ def api_device_all():
                     elif o["state"] != "On" and p["state"] == "On":
                         newDev.append(p)
                     break
+            if p["type"] == "Video":
+                pdev = dlnap.DlnapDevice(None,None)
+                pdev.loadByIp(p["host"])
+                p["name"] = pdev.name
             if not existed:
                 newDev.append(p)
+        
         #处理被删除的设备，将它列和已删除设备。
         for o in ShopDevices:
             existed = False
@@ -706,9 +740,12 @@ def api_device_all():
         #将删除设备停止播放
         for d in deletedDevices:
             if d["type"] == "Video" and d["protocol"]=="DLNA":
-                playCmd = PyCmd + " ./dlnap.py --ip " + d["host"] + " --stop"
-                logger.info("执行：" + playCmd)
-                os.system(playCmd)
+                try:
+                    deledDev = dlnap.DlnapDevice(None,None)
+                    deledDev.loadByName(d["name"])
+                    deledDev.stop()
+                except:
+                    logger.error("停止设备"+d["name"]+"出错")
         resetUpdateCheckCode()
         checkPlayList()
         loadPlaylist()

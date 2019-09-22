@@ -454,14 +454,18 @@ class DlnapDevice:
        self._DlnapDevice__raw = devinfo["_DlnapDevice__raw"]
 
    def loadByName(self,devname):
-        if devname in devList:
-            dinfo =  devList[devname]
-            self.loads(dinfo)
+      if len(devList) == 0:
+         discover()
+      if devname in devList:
+         dinfo =  devList[devname]
+         self.loads(dinfo)
    
    def loadByIp(self,ip):
-        if ip in devList:
-            dinfo =  devList[ip]
-            self.loads(dinfo)
+      if len(devList) == 0:
+         discover()
+      if ip in devList:
+         dinfo =  devList[ip]
+         self.loads(dinfo)
 
    def __repr__(self):
       return '{} @ {}'.format(self.name, self.ip)
@@ -612,6 +616,9 @@ class DlnapDevice:
 
    def next(self):
       pass
+
+def getAllDevices():
+   return devList
 
 
 def discover(name = '', ip = '', timeout = 3, st = SSDP_ALL, mx = 3, ssdp_version = 1):
