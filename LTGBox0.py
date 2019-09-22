@@ -26,7 +26,7 @@ CORS(app)
 from sqlalchemy import and_,or_,desc,asc
 import logging
 import logging.config
-from mpg123 import Mpg123, Out123
+#from mpg123 import Mpg123, Out123
 
 #常量
 _SN_ = '000'
@@ -159,6 +159,8 @@ def fixDevices():
         return 
     changed = False
     for sd in ShopDevices:
+        if sd["type"] == "Audio":
+            continue
         for dinfo in dlist:
             if dinfo.name == sd["name"] and dinfo.ip != sd["host"]:
                 sd["host"] = dinfo.ip
@@ -259,7 +261,6 @@ def playPlanWorker(playlistPlan):
 
 #检查播入列表更新。
 def checkPlayList(): 
-    global AppStopAction
     if checkAppStopAction():
         return
     #检查是否有更新
@@ -323,6 +324,7 @@ def checkPlayList():
     logger.info("资源检查完成")
 
 def checkAppStopAction():
+    global AppStopAction
     if AppStopAction in ("Restart","Close"):
         return True
     else:
@@ -331,7 +333,6 @@ def checkAppStopAction():
 # 下载数据库中未下载的资源
 def downloadResource():
     #处理重启情况
-    global AppStopAction
     if checkAppStopAction():
         return
     logger.info("查找需要下载的资源")
@@ -409,7 +410,6 @@ def downloadResource():
 
 # 播放MP3       
 def playMusic(audiocard,filename):
-    global AppStopAction
     if checkAppStopAction():
         return
     try:
@@ -419,10 +419,13 @@ def playMusic(audiocard,filename):
         else:
             os.system('mpg321 -o alsa -a '+audiocard +' "'+filename+'"') 
         '''
+        '''
         mp3 = Mpg123(filename)
         out = Out123()
         for frame in mp3.iter_frames(out.start):
             out.play(frame)
+        '''
+        os.system('mpg123 '+filename+'') 
     except:
         logger.error("音乐播放出现错误"+filename)
 
@@ -444,7 +447,6 @@ def removeResourceFiles():
 
 #载入节目单
 def loadPlaylist():
-    global AppStopAction
     if checkAppStopAction():
         return
     session = playlistdb.GetDbSession()
@@ -520,7 +522,6 @@ def playMediaWorker(deviceHost):
                 return
 
         #处理重启情况
-        global AppStopAction
         if checkAppStopAction():
             logger.warning("设备当前处于停上中或重启状态。设备："+deviceHost)
             return
