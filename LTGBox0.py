@@ -431,10 +431,9 @@ def playVedio(devname,filename):
         devinfo = dlnap.DlnapDevice(None,None)
         devinfo.loadByName(devname)
         tv = dlnap.DlnapDevice( devinfo._DlnapDevice__raw.encode('utf-8'),devinfo.ip)
-        tv.stop()
+        #tv.stop()
         tv.set_current_media(filename)
-        tv.set_current_media(filename)
-        tv.play()
+        time.sleep(2)
         tv.play()
     except:
         logger.error("视频播放出现错误"+filename)
@@ -550,7 +549,7 @@ def playMediaWorker(deviceHost):
         #播放节目
         logger.info("播放媒体文件" + mediafile["filename"] + "至" + deviceInfo["name"] + ",执行时间：" + str(threadDuration) + "秒")
         if deviceInfo["protocol"] == "DLNA":
-            #threadDuration -= 2
+            threadDuration -= 2
             localfilename ="http://" +LocalHttpHost +":" +LocalHttpPort + "/"+ mediafile["mediaid"] + mediafile["extension"]
             logger.info("视频文件地址："+localfilename)
             _thread.start_new_thread(playVedio,(deviceInfo["name"] , localfilename))
@@ -576,7 +575,6 @@ def playMediaWorker(deviceHost):
             threadDuration = 1
         time.sleep(threadDuration)
         _thread.start_new_thread(playMediaWorker,(deviceHost,))
-
     except Exception as err:
         logger.error("播放节目出错")
         time.sleep(10)
