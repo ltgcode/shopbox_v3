@@ -430,9 +430,9 @@ def playVedio(devname,filename):
     try:
         devinfo = dlnap.DlnapDevice(None,None)
         devinfo.loadByName(devname)
-        devinfo.set_current_media(filename)
         time.sleep(2)
         devinfo.stop()
+        devinfo.set_current_media(filename)
         devinfo.play()
     except:
         logger.error("视频播放出现错误"+filename)
