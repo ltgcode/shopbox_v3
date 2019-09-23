@@ -26,7 +26,7 @@ CORS(app)
 from sqlalchemy import and_,or_,desc,asc
 import logging
 import logging.config
-#from mpg123 import Mpg123, Out123
+from mpg123 import Mpg123, Out123
 
 #常量
 _SN_ = '000'
@@ -419,13 +419,13 @@ def playMusic(audiocard,filename):
         else:
             os.system('mpg321 -o alsa -a '+audiocard +' "'+filename+'"') 
         '''
-        '''
+        
         mp3 = Mpg123(filename)
         out = Out123()
         for frame in mp3.iter_frames(out.start):
             out.play(frame)
-        '''
-        os.system('mpg123 '+filename+'') 
+        
+        #os.system('mpg123 '+filename+'') 
     except:
         logger.error("音乐播放出现错误"+filename)
 
@@ -435,7 +435,7 @@ def playVedio(devname,filename):
         devinfo.loadByName(devname)
         time.sleep(2)
         devinfo.stop()
-        devinfo.set_current_media(filename)
+        devinfo.set_current_media_s(filename)
         devinfo.play()
     except:
         logger.error("视频播放出现错误"+filename)
@@ -647,10 +647,9 @@ def playToDevice(devicename,url,endtime):
     if device.has_av_transport == False:
         logger.error("未发现该设备："+devicename)
         return
-    tv = dlnap.DlnapDevice(device._DlnapDevice__raw.encode('utf-8'),device.ip)
     NoADUntil[devicename] = endtime
-    tv.set_current_media(url)
-    tv.play()
+    device.set_current_media_s(url)
+    device.play()
 
 #更新命令执行状态
 def updateRemoteCommandStatus(cmdid,status):
@@ -673,6 +672,8 @@ def remoteCommandsRunner():
     reqUrl = DiscoverURI+'/iot/command/'+_SN_
     try:
         res = requests.get(reqUrl)
+        if res.text == "":
+            return
         commandObj = json.loads(res.text)
         if "command" not in commandObj:
             return

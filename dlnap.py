@@ -36,6 +36,7 @@ import logging
 import traceback
 import mimetypes
 import json
+import requests
 from contextlib import contextmanager
 
 
@@ -526,6 +527,25 @@ class DlnapDevice:
       """
       packet = self._create_packet('SetAVTransportURI', {'InstanceID':instance_id, 'CurrentURI':url, 'CurrentURIMetaData':'' })
       _send_tcp((self.ip, self.port), packet)
+   
+   def set_current_media_s(self,url,instance_id = 0):
+      ctrlUrl = 'http://'+self.ip+":"+str(self.port)+"/"+self.control_url
+      headers = {'Content-Type': 'text/xml','SOAPAction':'"urn:schemas-upnp-org:service:AVTransport:1#SetAVTransportURI"'}
+      data = '<?xml version="1.0"  encoding="utf-8" ?>   \
+               <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">  \
+                  <s:Body> \
+                     <u:SetAVTransportURI xmlns:u="urn:schemas-upnp-org:service:AVTransport:1"> \
+                        <InstanceID>{0}</InstanceID> \
+                        <CurrentURI>{1}</CurrentURI>  \
+                        <CurrentURIMetaData></CurrentURIMetaData> \
+                     </u:SetAVTransportURI>  \
+                  </s:Body>   \
+               </s:Envelope>'.format(instance_id,url) 
+      try:
+        resData = requests.post(ctrlUrl,headers = headers, data=data)
+        return resData
+      except Exception as err:
+        print('播放节目失败。%s',err)
 
    def play(self, instance_id = 0):
       """ Play media that was already set as current.
