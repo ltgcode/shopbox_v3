@@ -107,11 +107,15 @@ if os.path.exists(_CONFIGFILE_) == False:
     initConfig()
 
 def getHostIP():
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.connect(("8.8.8.8", 80))
-    ip = s.getsockname()[0]
-    s.close()
-    return ip
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except Exception as err:
+        logger.error("获取本机IP失败 %s",err)
+        return None
 
 #载入配置。
 def loadConfig():
