@@ -107,15 +107,11 @@ if os.path.exists(_CONFIGFILE_) == False:
     initConfig()
 
 def getHostIP():
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(("8.8.8.8", 80))
-        ip = s.getsockname()[0]
-        s.close()
-        return ip
-    except Exception as err:
-        logger.error("获取本机IP失败 %s",err)
-        return None
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.connect(("8.8.8.8", 80))
+    ip = s.getsockname()[0]
+    s.close()
+    return ip
 
 #载入配置。
 def loadConfig():
@@ -439,7 +435,11 @@ def playVedio(devname,filename):
         devinfo.loadByName(devname)
         time.sleep(2)
         devinfo.stop()
-        devinfo.set_current_media_s(filename)
+        resData = devinfo.set_current_media_s(filename)
+        if resData == None :
+            dlnap.discover()
+        if resData.status_code != 200:
+            devinfo.set_current_media(filename)
         devinfo.play()
     except:
         logger.error("视频播放出现错误"+filename)

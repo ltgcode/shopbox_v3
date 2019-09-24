@@ -529,7 +529,13 @@ class DlnapDevice:
       _send_tcp((self.ip, self.port), packet)
    
    def set_current_media_s(self,url,instance_id = 0):
-      ctrlUrl = 'http://'+self.ip+":"+str(self.port)+"/"+self.control_url
+      if self.control_url == None:
+         return None
+      if self.control_url[0] == '/':
+         devContolUrl = self.control_url[1:]
+      else:
+         devContolUrl = self.control_url
+      ctrlUrl = 'http://'+self.ip+":"+str(self.port)+"/"+ devContolUrl
       headers = {'Content-Type': 'text/xml','SOAPAction':'"urn:schemas-upnp-org:service:AVTransport:1#SetAVTransportURI"'}
       data = '<?xml version="1.0"  encoding="utf-8" ?>   \
                <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">  \
@@ -689,21 +695,44 @@ def discover(name = '', ip = '', timeout = 3, st = SSDP_ALL, mx = 3, ssdp_versio
          else:
              # Nothing to read
              pass
-   listChanged = False
+
    for dirviceitem  in devices:
-       dinfo = {}
-       dinfo["location"] = dirviceitem.location
-       dinfo["port"] = dirviceitem.port
-       dinfo["name"] = dirviceitem.name
-       dinfo["control_url"] = dirviceitem.control_url
-       dinfo["rendering_control_url"] = dirviceitem.rendering_control_url
-       dinfo["has_av_transport"] = dirviceitem.has_av_transport
-       dinfo["ip"] = dirviceitem.ip
-       dinfo["_DlnapDevice__desc_xml"] = dirviceitem._DlnapDevice__desc_xml 
-       dinfo["_DlnapDevice__raw"] = dirviceitem._DlnapDevice__raw
-       devList[dinfo["name"]] = dinfo
-       devList[dinfo["ip"]] = dinfo
-       listChanged = True
+      if dirviceitem.has_av_transport == False:
+         continue
+      dinfo = {}
+      dinfo["location"] = dirviceitem.location
+      dinfo["port"] = dirviceitem.port
+      dinfo["name"] = dirviceitem.name
+      dinfo["control_url"] = dirviceitem.control_url
+      dinfo["rendering_control_url"] = dirviceitem.rendering_control_url
+      dinfo["has_av_transport"] = dirviceitem.has_av_transport
+      dinfo["ip"] = dirviceitem.ip
+      dinfo["_DlnapDevice__desc_xml"] = dirviceitem._DlnapDevice__desc_xml 
+      dinfo["_DlnapDevice__raw"] = dirviceitem._DlnapDevice__raw
+      if dinfo["name"] in devList:
+         currDev =  devList[dinfo["name"]]
+         if currDev["control_url"] == None or currDev["control_url"] == "":
+            devList[dinfo["name"]] = dinfo
+         elif dinfo["control_url"] == None or dinfo["control_url"] == "":
+            continue
+         if currDev["control_url"] == None or currDev["control_url"] == "":
+            devList[dinfo["name"]] = dinfo
+         elif dinfo["control_url"] == None or dinfo["control_url"] == "":
+            continue
+      else:
+         devList[dinfo["name"]] = dinfo
+      if dinfo["ip"] in devList:
+         currDev = devList[dinfo["ip"]] 
+         if currDev["control_url"] == None or currDev["control_url"] == "":
+            devList[dinfo["ip"]] = dinfo
+         elif dinfo["control_url"] == None or dinfo["control_url"] == "":
+            continue
+         if currDev["control_url"] == None or currDev["control_url"] == "":
+            devList[dinfo["ip"]] = dinfo
+         elif dinfo["control_url"] == None or dinfo["control_url"] == "":
+            continue
+      else:
+         devList[dinfo["ip"]] = dinfo
    return devices
 
 #
