@@ -457,16 +457,24 @@ class DlnapDevice:
    def loadByName(self,devname):
       if len(devList) == 0:
          discover()
+      if devname not in devList:
+         discover()
       if devname in devList:
          dinfo =  devList[devname]
          self.loads(dinfo)
+      else:
+         print("无法找到设备 %s",devname)
    
    def loadByIp(self,ip):
       if len(devList) == 0:
          discover()
+      if ip not in devList:
+         discover()
       if ip in devList:
          dinfo =  devList[ip]
          self.loads(dinfo)
+      else:
+         print("%s 地址无法找到设备",ip)
 
    def __repr__(self):
       return '{} @ {}'.format(self.name, self.ip)
