@@ -37,6 +37,7 @@ import traceback
 import mimetypes
 import json
 import requests
+import datetime
 from contextlib import contextmanager
 
 
@@ -63,6 +64,49 @@ URN_RenderingControl_Fmt = "urn:schemas-upnp-org:service:RenderingControl:{}"
 
 SSDP_ALL = "ssdp:all"
 devList = {}
+DL_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'dlist.json')
+
+class DDateEncoder(json.JSONEncoder):  
+    def default(self, obj):  
+        if isinstance(obj, datetime.datetime):  
+            return obj.strftime('%Y-%m-%dT%H:%M:%S')  
+        else:  
+            return json.JSONEncoder.default(self, obj) 
+
+#--------------------
+#  初始化设备表
+#--------------------
+def initDevList():
+   if os.path.exists(DL_FILE)== False:
+      return
+   else:
+      global devList
+      with open(DL_FILE) as json_data:
+         devList = json.load(json_data)
+      for key in devList:
+         item = devList[key]
+         item["updatedon"] = time.strptime( item["updatedon"] ,'%Y-%m-%dT%H:%M:%S')
+      
+
+#--------------------
+#  保存设备表
+#--------------------
+def saveDevList():
+   _3dayago =  datetime.datetime.now() - datetime.timedelta(days = 3) 
+   with open(DL_FILE, 'w') as outfile:
+      tdata ={}
+      for key in devList:
+         item  = devList[key]
+         if item["updatedon"] > _3dayago:
+            tdata[key] = item
+      devdata = json.dumps(tdata,cls=DDateEncoder)
+      #json.dump(devList, outfile)
+      outfile.writelines(devdata)
+
+
+#初始化设备表
+initDevList()
+
 # =================================================================================================
 # XML to DICT
 #
@@ -656,7 +700,8 @@ def getAllDevices():
 
 
 def discover(name = '', ip = '', timeout = 3, st = SSDP_ALL, mx = 3, ssdp_version = 1):
-   """ Discover UPnP devices in the local network.
+   """ 
+   Discover UPnP devices in the local network.
    name -- name or part of the name to filter devices
    timeout -- timeout to perform discover
    st -- st field of discovery packet
@@ -717,30 +762,40 @@ def discover(name = '', ip = '', timeout = 3, st = SSDP_ALL, mx = 3, ssdp_versio
       dinfo["ip"] = dirviceitem.ip
       dinfo["_DlnapDevice__desc_xml"] = dirviceitem._DlnapDevice__desc_xml 
       dinfo["_DlnapDevice__raw"] = dirviceitem._DlnapDevice__raw
+      dinfo["updatedon"] = datetime.datetime.now()
+      changed = False
       if dinfo["name"] in devList:
          currDev =  devList[dinfo["name"]]
          if currDev["control_url"] == None or currDev["control_url"] == "":
             devList[dinfo["name"]] = dinfo
+            changed = True
          elif dinfo["control_url"] == None or dinfo["control_url"] == "":
             continue
          if currDev["control_url"] == None or currDev["control_url"] == "":
             devList[dinfo["name"]] = dinfo
+            changed = True
          elif dinfo["control_url"] == None or dinfo["control_url"] == "":
             continue
       else:
          devList[dinfo["name"]] = dinfo
+         changed = True
       if dinfo["ip"] in devList:
          currDev = devList[dinfo["ip"]] 
          if currDev["control_url"] == None or currDev["control_url"] == "":
             devList[dinfo["ip"]] = dinfo
+            changed = True
          elif dinfo["control_url"] == None or dinfo["control_url"] == "":
             continue
          if currDev["control_url"] == None or currDev["control_url"] == "":
             devList[dinfo["ip"]] = dinfo
+            changed = True
          elif dinfo["control_url"] == None or dinfo["control_url"] == "":
             continue
       else:
          devList[dinfo["ip"]] = dinfo
+         changed = True
+      if changed:
+         saveDevList()
    return devices
 
 #
