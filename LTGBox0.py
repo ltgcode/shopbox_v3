@@ -30,7 +30,7 @@ from mpg123 import Mpg123, Out123
 
 #常量
 _SN_ = '000'
-_VERSION_ = '0.3.1.0'
+_VERSION_ = '0.3.1.1'
 _CONFIGFILE_ = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'ltgbox.conf') 
 _LAST_UPDATE_ = 'update.txt'
 
