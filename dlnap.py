@@ -82,7 +82,11 @@ def initDevList():
    else:
       global devList
       with open(DL_FILE) as json_data:
-         devList = json.load(json_data)
+         try:
+            devList = json.load(json_data)
+         except Exception:
+            os.remove(DL_FILE)
+            return
       for key in devList:
          item = devList[key]
          item["updatedon"] = time.strptime( item["updatedon"] ,'%Y-%m-%dT%H:%M:%S')
