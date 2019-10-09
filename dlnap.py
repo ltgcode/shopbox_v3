@@ -768,6 +768,7 @@ def discover(name = '', ip = '', timeout = 3, st = SSDP_ALL, mx = 3, ssdp_versio
          currDev =  devList[dinfo["name"]]
          if dinfo["control_url"] != None and dinfo["control_url"] != "":
             devList[dinfo["name"]] = dinfo
+            changed = True
          elif currDev["control_url"] == None or currDev["control_url"] == "":
             devList[dinfo["name"]] = dinfo
             changed = True
@@ -780,6 +781,7 @@ def discover(name = '', ip = '', timeout = 3, st = SSDP_ALL, mx = 3, ssdp_versio
          currDev = devList[dinfo["ip"]] 
          if dinfo["control_url"] != None and dinfo["control_url"] != "":
             devList[dinfo["ip"]] = dinfo
+            changed = True
          elif currDev["control_url"] == None or currDev["control_url"] == "":
             devList[dinfo["ip"]] = dinfo
             changed = True
