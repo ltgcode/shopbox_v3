@@ -270,10 +270,12 @@ def checkPlayList():
     except Exception as err:
         logger.error("无法获取更新标记文本信息.%s",err)
         return
+    checkCode = ""
     if checkRequest.status_code == 200:
         checkCode = checkRequest.text
     else:
         logger.error("请求媒体更新标记失败")
+        return
     with open(_LAST_UPDATE_,'r') as cf:
         localCheckCode = cf.read()
     if localCheckCode == checkCode:
