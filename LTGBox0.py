@@ -851,7 +851,7 @@ def BackgroupTask():
 if __name__ == '__main__':
     #配置初始化
     try:
-        os.system('sh setup.sh') 
+        os.system('pip3 install dlna   --user') 
         loadConfig()
         _thread.start_new_thread(BackgroupTask,())
         _thread.start_new_thread(runWebApp,())
