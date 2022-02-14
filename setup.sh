@@ -15,3 +15,4 @@ pip3 install flask  --user
 pip3 install flask_cors  --user
 pip3 install mpg123   --user
 pip3 install Mpg123   --user
+pip3 install dlna   --user

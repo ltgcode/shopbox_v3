@@ -13,6 +13,7 @@ import uuid
 import _thread
 import schedule
 import dlnap
+import dlna
 import socket
 import signal
 import urllib.parse
@@ -22,7 +23,7 @@ from flask import request,Response
 from flask_cors import CORS
 from urllib.parse import quote
 app = Flask(__name__)
-CORS(app)
+
 from sqlalchemy import and_,or_,desc,asc
 import logging
 import logging.config
@@ -30,7 +31,7 @@ from mpg123 import Mpg123, Out123
 
 #常量
 _SN_ = '000'
-_VERSION_ = '0.3.1.2'
+_VERSION_ = '0.3.2.0'
 _CONFIGFILE_ = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'ltgbox.conf') 
 _LAST_UPDATE_ = 'update.txt'
 
@@ -137,7 +138,7 @@ def loadConfig():
         except:
             LocalHttpHost = Config.get("server","localHttpHost")
     global LocalHttpPort
-    UseLocalHost = Config.get("server","localHttpPort")
+    LocalHttpPort = Config.get("server","localHttpPort")
     #Phthon命令
     global PyCmd
     PyCmd = Config.get("server","pycmd")
@@ -440,8 +441,10 @@ def playVedio(devname,filename):
         resData = devinfo.set_current_media_s(filename)
         if resData == None :
             dlnap.discover()
+            os.system("dlna play \""+filename+"\" -d \""+devname+"\"")
         if resData != None and resData.status_code != 200:
             devinfo.set_current_media(filename)
+            os.system("dlna play \""+filename+"\" -d \""+devname+"\"")
         devinfo.play()
     except Exception as err:
         logger.error("视频播放出现错误 ,原因："+filename+",%s",err)
@@ -589,11 +592,11 @@ def playMediaWorker(deviceHost):
 
 def iot_alive_report():
     global LocalHttpHost
-    try:
-        LocalHttpHost = getHostIP()
-    except Exception as err:
-        logger.error('心跳报告,获取主机IP失败。%s',err)
-        return
+    # try:
+    #     LocalHttpHost = getHostIP()
+    # except Exception as err:
+    #     logger.error('心跳报告,获取主机IP失败。%s',err)
+    #     return
     devicesList = []
     devReged = {}
     devlist = dlnap.getAllDevices()
@@ -809,7 +812,8 @@ def device_software_update():
 
 
 def runWebApp():
-    time.sleep(30)
+    time.sleep(10)
+    CORS(app, supports_credentials=True)
     app.run(host='0.0.0.0', port=5604)
 
 def checkUpdate():
@@ -847,6 +851,7 @@ def BackgroupTask():
 if __name__ == '__main__':
     #配置初始化
     try:
+        os.system('sh setup.sh') 
         loadConfig()
         _thread.start_new_thread(BackgroupTask,())
         _thread.start_new_thread(runWebApp,())
