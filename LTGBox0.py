@@ -247,7 +247,7 @@ def playPlanWorker(playlistPlan):
         for selfIoTPath in device["path"]:
             if selfIoTPath == '' :
                 continue
-            if selfIoTPath != item_iotpath :
+            if selfIoTPath != item_iotpath and selfIoTPath+'/' != item_iotpath:
                 continue 
             test = True
             break
