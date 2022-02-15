@@ -448,6 +448,7 @@ def playVedio(devname,filename):
         devinfo.play()
     except Exception as err:
         logger.error("视频播放出现错误 ,原因："+filename+",%s",err)
+        os.system("dlna play \""+filename+"\" -d \""+devname+"\"")
 
 
 #清理资源文件
