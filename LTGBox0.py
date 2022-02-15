@@ -398,7 +398,7 @@ def downloadResource():
             playlistTarget.modifiedon = datetime.datetime.now()
             loadPlaylist()
         else:
-            logger.error("资源" + playlistTarget.filename + "下载失败")
+            logger.error("资源" + playlistTarget.filename + "下载失败,URL:"+url)
             os.remove(localFile)
             playlistTarget.status = 10
             time.sleep(1)
