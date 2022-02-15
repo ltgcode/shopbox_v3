@@ -441,14 +441,14 @@ def playVedio(devname,filename):
         resData = devinfo.set_current_media_s(filename)
         if resData == None :
             dlnap.discover()
-            os.system("dlna play \""+filename+"\" -d \""+devname+"\"")
+            os.system('dlna play "'+filename+'" -d "'+devname+'"')
         if resData != None and resData.status_code != 200:
             devinfo.set_current_media(filename)
-            os.system("dlna play \""+filename+"\" -d \""+devname+"\"")
+            os.system('dlna play "'+filename+'" -d "'+devname+'"')
         devinfo.play()
     except Exception as err:
         logger.error("视频播放出现错误 ,原因："+filename+",%s",err)
-        os.system("dlna play \""+filename+"\" -d \""+devname+"\"")
+        os.system('dlna play "'+filename+'" -d "'+devname+'"')
 
 
 #清理资源文件
