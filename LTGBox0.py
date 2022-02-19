@@ -13,9 +13,10 @@ import uuid
 import _thread
 import schedule
 import dlnap
-import dlna
 import socket
 import signal
+os.system('pip3 install wget   --user') 
+import wget
 import urllib.parse
 from urllib.request import urlopen
 from flask import Flask, url_for,jsonify
@@ -75,6 +76,7 @@ if os.path.exists(logPath) == False:
 def resetUpdateCheckCode():
     with open(_LAST_UPDATE_,'w') as cf:
         cf.writelines('0')
+        cf.flush()
 
 if not os.path.exists(_LAST_UPDATE_):
     resetUpdateCheckCode()
@@ -103,6 +105,8 @@ def initConfig():
     }
     with open(_CONFIGFILE_, 'w') as configfile:
         Config.write(configfile)
+        configfile.flush()
+        configfile.close()
 
 if os.path.exists(_CONFIGFILE_) == False:
     initConfig()
@@ -184,6 +188,8 @@ def savePlayersConfig():
         Config.set("players",dinfo["name"],json.dumps(dinfo))
     with open(_CONFIGFILE_, 'w') as f:
         Config.write(f)
+        f.flush()
+        f.close()
 
 #处理播放列表项
 def resourceItemWorker(iotPath,resourceList):
@@ -324,6 +330,8 @@ def checkPlayList():
     loadPlaylist()
     with open(_LAST_UPDATE_,'w') as cf:
         cf.writelines(checkCode)
+        cf.flush()
+        cf.close()
     logger.info("资源检查完成")
 
 def checkAppStopAction():
@@ -350,7 +358,7 @@ def downloadResource():
         #localPath = sys.path[0] + "/resources/"
         localPath = baseDir +"/resources/"
         #本地文件路径
-        localFile = localPath + playlistTarget.mediaid + playlistTarget.extension
+        localFile = os.path.join(localPath ,playlistTarget.mediaid + playlistTarget.extension)
         #检查本地文件是否已存在,如果存在则无需下载
         if os.path.exists(localFile) :
             logger.info("文件" + playlistTarget.filename + "已存在，无需下载")
@@ -365,21 +373,30 @@ def downloadResource():
             playlistTarget.modifiedon = datetime.datetime.now()
             session2.commit()
         logger.info("资源下载" + playlistTarget.filename + ".请求：" + url)
+        # 使用wget下载
+        wgetFail = False
         try:
-            response = requests.get(url, stream=True)
-            response.raise_for_status()
-            with open(localFile,"wb") as wfile:
-                for chunk in response.iter_content(chunk_size=1024 * 32):
-                    if chunk:
-                        wfile.write(chunk)
-                wfile.close()
+            wget.download(url,localFile)
         except Exception as err:
-            logger.error("资源" + playlistTarget.filename + "下载发生错误,%s",err)
-            playlistTarget.status = 10
-            playlistTarget.modifiedon = datetime.datetime.now()
-            time.sleep(5)
-            _thread.start_new_thread(downloadResource,())
-            return
+            logger.error("资源"+ url + '('+playlistTarget.filename +')'+ "下载(Wget)发生错误,%s",err)
+            wgetFail = True
+        if wgetFail:
+            try:
+                response = requests.get(url, stream=True)
+                response.raise_for_status()
+                with open(localFile,"wb") as wfile:
+                    for chunk in response.iter_content(chunk_size=1024 * 32):
+                        if chunk:
+                            wfile.write(chunk)
+                    wfile.flush()
+                    wfile.close()
+            except Exception as err:
+                logger.error("资源" + playlistTarget.filename + "下载发生错误,%s",err)
+                playlistTarget.status = 10
+                playlistTarget.modifiedon = datetime.datetime.now()
+                time.sleep(5)
+                _thread.start_new_thread(downloadResource,())
+                return
         logger.info("资源" + playlistTarget.filename + "下载完成")
         playlistTarget.status = 0
         playlistTarget.modifiedon = datetime.datetime.now()
@@ -414,22 +431,19 @@ def playMusic(audiocard,filename):
         logger.error("音乐播放出现错误"+filename+",%s",err)
 
 def playVedio(devname,filename):
-    try:
-        devinfo = dlnap.DlnapDevice(None,None)
-        devinfo.loadByName(devname)
-        time.sleep(2)
-        devinfo.stop()
-        resData = devinfo.set_current_media_s(filename)
-        if resData == None :
-            dlnap.discover()
-            os.system('dlna play "'+filename+'" -q "'+devname+'"')
-        if resData != None and resData.status_code != 200:
-            devinfo.set_current_media(filename)
-            os.system('dlna play "'+filename+'" -q "'+devname+'"')
-        devinfo.play()
-    except Exception as err:
-        logger.error("设备"+devname+"播放视频出现错误 ,原因："+filename+",%s",err)
+    logger.info('在'+devname+"播放："+filename)
+    devinfo = dlnap.DlnapDevice(None,None)
+    devinfo.loadByName(devname)
+    time.sleep(2)
+    devinfo.stop()
+    resData = devinfo.set_current_media_s(filename)
+    if resData == None :
+        dlnap.discover()
         os.system('dlna play "'+filename+'" -q "'+devname+'"')
+    if resData != None and resData.status_code != 200:
+        devinfo.set_current_media(filename)
+        os.system('dlna play "'+filename+'" -q "'+devname+'"')
+    devinfo.play()
 
 
 #清理资源文件
@@ -833,12 +847,12 @@ def BackgroupTask():
 if __name__ == '__main__':
     #配置初始化
     try:
-        os.system('pip3 install dlna   --user') 
         loadConfig()
         _thread.start_new_thread(BackgroupTask,())
         _thread.start_new_thread(runWebApp,())
         while AppStopAction == "None":
             time.sleep(1)
+        os.system('pip3 install dlna   --user') 
         logger.info("应用将在10秒后关闭")
         time.sleep(10)
     except Exception as err:

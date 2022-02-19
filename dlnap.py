@@ -85,7 +85,7 @@ def initDevList():
          try:
             devList = json.load(json_data)
          except Exception:
-            os.remove(DL_FILE)
+            #os.remove(DL_FILE)
             return
       for key in devList:
          item = devList[key]
@@ -97,15 +97,25 @@ def initDevList():
 #--------------------
 def saveDevList():
    _3dayago =  datetime.datetime.now() - datetime.timedelta(days = 3) 
+   try:
+      os.remove(DL_FILE)
+   except Exception:
+      print("删除文件%s失败",DL_FILE)
    with open(DL_FILE, 'w') as outfile:
       tdata ={}
       for key in devList:
          item  = devList[key]
-         if item["updatedon"] > _3dayago:
+         if isinstance(item["updatedon"],datetime.datetime) and item["updatedon"] > _3dayago:
             tdata[key] = item
+         if isinstance(item["updatedon"],time.struct_time):
+            updatedOn = datetime.datetime(*item["updatedon"][:6])
+            if updatedOn > _3dayago:
+               tdata[key] = item
       devdata = json.dumps(tdata,cls=DDateEncoder)
       #json.dump(devList, outfile)
       outfile.writelines(devdata)
+      outfile.flush()
+      outfile.close()
 
 
 #初始化设备表
