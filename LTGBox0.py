@@ -353,23 +353,12 @@ def downloadResource():
         localFile = localPath + playlistTarget.mediaid + playlistTarget.extension
         #检查本地文件是否已存在,如果存在则无需下载
         if os.path.exists(localFile) :
-            finfo = os.stat(localFile)
-            if finfo.st_size == playlistTarget.size :
-                logger.info("文件" + playlistTarget.filename + "已存在，无需下载")
-                playlistTarget.status = 0
-                playlistTarget.modifiedon = datetime.datetime.now()
-                session2.commit()
-                _thread.start_new_thread(downloadResource,())
-                return
-            else:
-                #处理未下载完成的任务
-                try:
-                    os.remove(localFile)
-                except Exception as err:
-                    logger.warning("文件" + localFile + "已存在，下载未完成，但无法访问。%",err)
-                    time.sleep(5)
-                    _thread.start_new_thread(downloadResource,())
-                    return
+            logger.info("文件" + playlistTarget.filename + "已存在，无需下载")
+            playlistTarget.status = 0
+            playlistTarget.modifiedon = datetime.datetime.now()
+            session2.commit()
+            _thread.start_new_thread(downloadResource,())
+            return
         
         if playlistTarget.status != 11:
             playlistTarget.status = 11
@@ -380,7 +369,7 @@ def downloadResource():
             response = requests.get(url, stream=True)
             response.raise_for_status()
             with open(localFile,"wb") as wfile:
-                for chunk in response.iter_content(chunk_size=1024 * 8):
+                for chunk in response.iter_content(chunk_size=1024 * 32):
                     if chunk:
                         wfile.write(chunk)
                 wfile.close()
@@ -391,18 +380,10 @@ def downloadResource():
             time.sleep(5)
             _thread.start_new_thread(downloadResource,())
             return
-        finfo = os.stat(localFile)
-        if finfo.st_size == playlistTarget.size :
-            logger.info("资源" + playlistTarget.filename + "下载完成")
-            playlistTarget.status = 0
-            playlistTarget.modifiedon = datetime.datetime.now()
-            loadPlaylist()
-        else:
-            logger.error("资源" + playlistTarget.filename + "下载失败,URL:"+url)
-            os.remove(localFile)
-            playlistTarget.status = 10
-            time.sleep(1)
-            playlistTarget.modifiedon = datetime.datetime.now()
+        logger.info("资源" + playlistTarget.filename + "下载完成")
+        playlistTarget.status = 0
+        playlistTarget.modifiedon = datetime.datetime.now()
+        loadPlaylist()
         session2.commit()
         time.sleep(1)
         _thread.start_new_thread(downloadResource,())
@@ -447,7 +428,7 @@ def playVedio(devname,filename):
             os.system('dlna play "'+filename+'" -q "'+devname+'"')
         devinfo.play()
     except Exception as err:
-        logger.error("视频播放出现错误 ,原因："+filename+",%s",err)
+        logger.error("设备"+devname+"播放视频出现错误 ,原因："+filename+",%s",err)
         os.system('dlna play "'+filename+'" -q "'+devname+'"')
 
 
