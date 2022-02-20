@@ -216,6 +216,8 @@ def resourceItemWorker(iotPath,resourceList):
             else:
                 if existitem.filename != item["filename"]:
                     existitem.filename = item["filename"]
+                if existitem.duration != item["duration"]:
+                    existitem.duration = item["duration"]
                 if existitem.urlpath != item["path"]:
                     existitem.urlpath = item["path"]
                 if existitem.iotpath != iotPath:
