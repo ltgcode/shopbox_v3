@@ -89,7 +89,11 @@ def initDevList():
             return
       for key in devList:
          item = devList[key]
-         item["updatedon"] = time.strptime( item["updatedon"] ,'%Y-%m-%dT%H:%M:%S')
+         try:
+            item["updatedon"] = time.strptime( item["updatedon"] ,'%Y-%m-%dT%H:%M:%S')
+         except Exception:
+            print(item)
+            item["updatedon"] = datetime.datetime.now()
       
 
 #--------------------
