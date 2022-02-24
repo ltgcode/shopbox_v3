@@ -15,8 +15,6 @@ import schedule
 import dlnap
 import socket
 import signal
-os.system('pip3 install wget   --user') 
-import wget
 import urllib.parse
 from urllib.request import urlopen
 from flask import Flask, url_for,jsonify
@@ -375,30 +373,23 @@ def downloadResource():
             playlistTarget.modifiedon = datetime.datetime.now()
             session2.commit()
         logger.info("资源下载" + playlistTarget.filename + ".请求：" + url)
-        # 使用wget下载
-        wgetFail = False
+        # 下载
         try:
-            wget.download(url,localFile)
+            response = requests.get(url, stream=True)
+            response.raise_for_status()
+            with open(localFile,"wb") as wfile:
+                for chunk in response.iter_content(chunk_size=1024 * 32):
+                    if chunk:
+                        wfile.write(chunk)
+                wfile.flush()
+                wfile.close()
         except Exception as err:
-            logger.error("资源"+ url + '('+playlistTarget.filename +')'+ "下载(Wget)发生错误,%s",err)
-            wgetFail = True
-        if wgetFail:
-            try:
-                response = requests.get(url, stream=True)
-                response.raise_for_status()
-                with open(localFile,"wb") as wfile:
-                    for chunk in response.iter_content(chunk_size=1024 * 32):
-                        if chunk:
-                            wfile.write(chunk)
-                    wfile.flush()
-                    wfile.close()
-            except Exception as err:
-                logger.error("资源" + playlistTarget.filename + "下载发生错误,%s",err)
-                playlistTarget.status = 10
-                playlistTarget.modifiedon = datetime.datetime.now()
-                time.sleep(5)
-                _thread.start_new_thread(downloadResource,())
-                return
+            logger.error("资源" + playlistTarget.filename + "下载发生错误,%s",err)
+            playlistTarget.status = 10
+            playlistTarget.modifiedon = datetime.datetime.now()
+            time.sleep(5)
+            _thread.start_new_thread(downloadResource,())
+            return
         logger.info("资源" + playlistTarget.filename + "下载完成")
         playlistTarget.status = 0
         playlistTarget.modifiedon = datetime.datetime.now()
@@ -445,7 +436,11 @@ def playVedio(devname,filename):
     if resData != None and resData.status_code != 200:
         devinfo.set_current_media(filename)
         os.system('dlna play "'+filename+'" -q "'+devname+'"')
-    devinfo.play()
+    try:
+        devinfo.play()
+    except Exception as err:
+        logger.error("设备"+devname+"播放"+filename+"出现错误,原因：%s",err)
+        os.system('dlna play "'+filename+'" -q "'+devname+'"')
 
 
 #清理资源文件
