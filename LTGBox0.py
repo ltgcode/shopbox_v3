@@ -273,7 +273,7 @@ def checkPlayList():
     #检查是否有更新
     checkFileURI = PlaylistURI+'.txt'
     try:
-        checkRequest = requests.get(checkFileURI)
+        checkRequest = requests.get(checkFileURI,headers={"Connection":"close"})
     except Exception as err:
         logger.error("无法获取更新标记文本信息.%s",err)
         return
@@ -295,7 +295,7 @@ def checkPlayList():
         return
     #注册新文件
     try:
-        confRequest = requests.get(PlaylistURI)
+        confRequest = requests.get(PlaylistURI,headers={"Connection":"close"})
     except Exception as err:
         logger.error("无法获取播放资源,%s",err)
         return
@@ -608,7 +608,7 @@ def iot_alive_report():
     }
     reqUrl = DiscoverURI+'/iot/alive/'+_SN_
     try:
-        requests.post(reqUrl,data=aliveInfo)
+        requests.post(reqUrl,data=aliveInfo,headers={"Connection":"close"})
         logger.info('完成报告。')
     except Exception as err:
         logger.error('心跳报告失败。%s',err)
@@ -662,7 +662,7 @@ def updateRemoteCommandStatus(cmdid,status):
         'status':status
     }
     try:
-        requests.put(reqUrl,data=reqData)
+        requests.put(reqUrl,data=reqData,headers={"Connection":"close"})
         logger.info('完成命令状态更新'+cmdid+":status-"+str(status))
     except Exception as err:
         logger.error('完成命令状态更新失败。%s',err)
@@ -673,7 +673,7 @@ def remoteCommandsRunner():
     global DiscoverURI
     reqUrl = DiscoverURI+'/iot/command/'+_SN_
     try:
-        res = requests.get(reqUrl)
+        res = requests.get(reqUrl,headers={"Connection":"close"})
         if res.text == "":
             return
         commandObj = json.loads(res.text)
