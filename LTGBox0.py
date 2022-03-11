@@ -50,6 +50,8 @@ SysUpdating = False
 AppStopAction = "None"
 NoADUntil = {}
 PlayListSet = {}
+qSession = requests.session()
+qSession.keep_alive = False
 
 #
 # Signal of Ctrl+C
@@ -825,9 +827,9 @@ def BackgroupTask():
     schedule.every(5).minutes.do(fixDevices)
     #心跳报告
     thread_iot_aliveReport()
-    schedule.every(30).seconds.do(thread_iot_aliveReport)
+    schedule.every(300).seconds.do(thread_iot_aliveReport)
     #远程命令
-    schedule.every(10).seconds.do(remoteCommandsRunner)
+    schedule.every(15).seconds.do(remoteCommandsRunner)
     #资源下载任务
     _thread.start_new_thread(downloadResource,())
     #定时检查升级
