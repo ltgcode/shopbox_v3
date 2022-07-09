@@ -4,6 +4,7 @@ import configparser
 import os
 import sys
 import time
+import random
 import datetime
 import sqlite3
 import requests
@@ -483,7 +484,7 @@ def loadPlaylist():
         devPlaylist["playlist"] = newplaylist
 
 #获取设备要播放的下一个节目
-def getNextMediaFile(devHost):
+def getNextMediaFile(devHost,incNum):
     if devHost not in PlayListSet:
         return
     devPlaylistInfo = PlayListSet[devHost]
@@ -491,7 +492,7 @@ def getNextMediaFile(devHost):
     devPlaylist = devPlaylistInfo["playlist"]
     if len(devPlaylist) == 0:
         return None
-    nextIndex = currIndex +1
+    nextIndex = currIndex + incNum
     if nextIndex >= len(devPlaylist):
         nextIndex = 0
     devPlaylistInfo["lastIndex"] = nextIndex
@@ -542,7 +543,12 @@ def playMediaWorker(deviceHost):
 
         #获取设备播放列表
         logger.info("获取设备" + deviceInfo["name"] + "的播放列表")
-        mediafile = getNextMediaFile(deviceHost)
+        if deviceInfo["protocol"] == "DLNA":
+            mediafile = getNextMediaFile(deviceHost,1)
+        elif deviceInfo["protocol"] == "AudioCard":
+            incNum = random.randint(1,3)
+            mediafile = getNextMediaFile(deviceHost,incNum)
+        
         if mediafile == None :
             logger.info("设备" + deviceInfo["name"] + "无可播放的媒体资源")
             time.sleep(30)
